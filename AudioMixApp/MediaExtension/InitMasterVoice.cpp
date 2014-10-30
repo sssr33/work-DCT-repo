@@ -10,12 +10,6 @@
 using namespace MediaExtension;
 using namespace Platform;
 
-InitMasterVoice &InitMasterVoice::GetInstance()
-{
-	static InitMasterVoice instance;
-	return instance;
-}
-
 InitMasterVoice::InitMasterVoice()
 {
 	HRESULT hr = S_OK;
@@ -26,6 +20,12 @@ InitMasterVoice::InitMasterVoice()
 InitMasterVoice::~InitMasterVoice()
 {
 	this->masterVoice->DestroyVoice();
+}
+
+InitMasterVoice &InitMasterVoice::GetInstance()
+{
+	static InitMasterVoice instance;
+	return instance;
 }
 
 Microsoft::WRL::ComPtr<IXAudio2> InitMasterVoice::GetXAudio()
