@@ -26,7 +26,6 @@ Reader::Reader()
 void Reader::Play(IPlayList ^playList)
 {
 	InitMasterVoice::GetInstance();
-	InitMasterVoice initXAudio;
 	Windows::Storage::Streams::IRandomAccessStream ^stream;
 	MFAudioReader *reader = new MFAudioReader();
 	this->currentPlayList = playList;
@@ -38,7 +37,7 @@ void Reader::Play(IPlayList ^playList)
 	}	
 	
 	stream = currentPlayList->GetStream(trackNumber);
-	this->xAudio2 = initXAudio.GetXAudio();
+	this->xAudio2 = InitMasterVoice::GetInstance().GetXAudio();
 
 	reader->Initialize(stream);
 	this->player->Initialize(reader, this->xAudio2, this->events);
@@ -84,11 +83,10 @@ void Reader::IfMarkerMet()
 {
 	InitMasterVoice::GetInstance();
 	Windows::Storage::Streams::IRandomAccessStream ^stream;
-	InitMasterVoice initXAudio;
 	//Marker marker;
 	MFAudioReader *reader = new MFAudioReader();
 	auto p = std::shared_ptr<XAudio2Player>(new XAudio2Player());
-	this->xAudio2 = initXAudio.GetXAudio();
+	this->xAudio2 = InitMasterVoice::GetInstance().GetXAudio();
 	stream = this->currentPlayList->GetStream(this->trackNumber + 1);
 	reader->Initialize(stream);
 	p->Initialize(reader, this->xAudio2, this->events);
