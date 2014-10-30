@@ -125,59 +125,65 @@ namespace AudioMixApp
         }
     }
 
+    //make an interfase in Reader. sent Track instead of IPlayList
+    public class Track
+    {
+        public Track(int globalPos, string name)
+        {
+            globalPosInPlayList = globalPos;
+            this.name = name;
+        }
+
+        public int globalPosInPlayList; //song position relatively begin of global playlist duration
+        public string name;
+    }
+
     public class CreatingPlaylist : IPlayList
     {
         private IRandomAccessStream stream;
-        private List<string> trackList;
-        private StorageFile file;
-        private int startPosition;
+        public List<Track> trackList;
+        private Track track;
+
+        //global positions sets outside
+        public virtual void CreatePlayList()
+        {
+            trackList = new List<Track>();
+
+            AddTrackInPlayList(0, "Assets\\1 Caroline Duris - Barrage(original mix).mp3");
+            AddTrackInPlayList(30, "Assets\\02 - Master of Puppets.mp3");
+            AddTrackInPlayList(10, "Assets\\02 Quutamo.mp3");
+        }
 
         public virtual IRandomAccessStream GetStream(int trackNumber)
         {
-            trackList = new List<string>
-            {
-                "Assets\\1 Caroline Duris - Barrage(original mix).mp3",
-                "Assets\\02 - Master of Puppets.mp3",
-                "Assets\\02 Quutamo.mp3"
-            };
+            var t = Package.Current.InstalledLocation.GetFileAsync(trackList[trackNumber].name).AsTask();
+            t.Wait();
+            StorageFile file = t.Result;
 
-            OpenAudio(trackNumber);
+            var t2 = file.OpenAsync(FileAccessMode.Read).AsTask();
+            t2.Wait();
+
+            stream = t2.Result;
 
             return stream;
         }
 
         public virtual bool CheckNext(int currentNumber)
         {
-            if (trackList[currentNumber + 1] != "" && trackList[currentNumber + 1] != null)
+            if (trackList[currentNumber + 1].name != "" && trackList[currentNumber + 1] != null)
                 return true;   
             return false;
         }
 
-        public virtual int GetPlayPosition()
-        {
-            startPosition = 0;  //заглушка
-            return startPosition;   
-        }
-
-        public int GetPlayListLength()
+        public virtual int GetPlayListLength()
         {
             return trackList.Count;
         }
 
-        private void OpenAudio(int trackNumber)
+        private void AddTrackInPlayList(int trackNumber, string trackName)
         {
-            var t = Package.Current.InstalledLocation.GetFileAsync(trackList[trackNumber]).AsTask();
-            t.Wait();
-            file = t.Result;
-
-            var t2 = file.OpenAsync(FileAccessMode.Read).AsTask();
-            t2.Wait();
-            stream = t2.Result;
-        }
-
-        private void SetPosition(double inputPos)   //позже будет отдельный слайдер для выбора позиции воспроизведения следующего трека
-        {
-            startPosition = (int) inputPos;
+            track = new Track(trackNumber, trackName);
+            trackList.Add(track);
         }
     }
 }

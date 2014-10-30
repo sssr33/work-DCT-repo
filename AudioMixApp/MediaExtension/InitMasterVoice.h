@@ -11,11 +11,10 @@ namespace MediaExtension
 		~InitMasterVoice();
 
 		InitMasterVoice(InitMasterVoice const&);              // Don't Implement
-		void operator=(InitMasterVoice const&); // Don't implement
+		void operator=(InitMasterVoice const&);		//Don't implement
 
 	public:
 		static InitMasterVoice &GetInstance();
-
 		Microsoft::WRL::ComPtr<IXAudio2> GetXAudio();
 
 	private:

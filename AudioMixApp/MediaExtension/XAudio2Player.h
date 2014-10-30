@@ -25,20 +25,33 @@ namespace MediaExtension
 		void operator()(IXAudio2SourceVoice *obj);
 	};
 
-	//маркер будет структурой, в которой будет выставляться трек и позиция
 	struct Marker
 	{
-		Marker(int pos, int number, Rational ratio)
+		Marker() : startPos(0) {}
+
+		void SetMarker(LONGLONG pos, int number, Rational ratio)
 		{
 			this->startPos = pos;
 			this->trackNumber = number;
 			this->ratio = ratio;
 		}
-		//void SetParams(LONGLONG startPos, uint16 trackNumber)
-		//{
-		//	this->startPos = startPos;
-		//	this->trackNumber = trackNumber;
-		//}
+
+		void ResetMarker()
+		{
+			this->activate = false;
+		}
+
+		LONGLONG GetMarkerPosition()
+		{
+			return this->startPos;
+		}
+
+		int GetNextTrack()
+		{
+			return this->trackNumber;
+		}
+
+	private:
 		Rational ratio;
 		LONGLONG startPos;
 		uint16 trackNumber;
@@ -55,11 +68,11 @@ namespace MediaExtension
 		void SetVolume(float volume);
 		void SetPosition(Rational ratio, double setPosition);
 		void SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2);
-
+		void SetMarker(LONGLONG pos, int number, Rational ratio);
 		void Stop();
 		void Initialize(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2, std::shared_ptr<AudioEvents> e);
 
-		LONGLONG marker = -400;
+		LONGLONG marker = -0;
 
 	private:
 		Microsoft::WRL::ComPtr<IXAudio2> xAudio2;
@@ -71,7 +84,7 @@ namespace MediaExtension
 		std::shared_ptr<AudioEvents> events;
 		std::mutex samplesMutex;
 		std::queue<std::unique_ptr<AudioSample>> samples;
-		//Marker marker;
+		Marker markeR;
 		//std::list<Marker> markersList;
 		bool stopped;
 
