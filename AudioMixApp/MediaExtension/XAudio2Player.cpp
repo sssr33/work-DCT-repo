@@ -28,7 +28,6 @@ XAudio2Player::XAudio2Player()
 	this->currentPosition = 0;
 }
 
-
 XAudio2Player::~XAudio2Player()
 {
 

@@ -72,7 +72,7 @@ namespace MediaExtension
 		void Stop();
 		void Initialize(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2, std::shared_ptr<AudioEvents> e);
 
-		LONGLONG marker = -0;
+		LONGLONG marker = 0;
 
 	private:
 		Microsoft::WRL::ComPtr<IXAudio2> xAudio2;

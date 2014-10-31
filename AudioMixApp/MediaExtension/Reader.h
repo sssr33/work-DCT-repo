@@ -9,21 +9,36 @@
 
 namespace MediaExtension
 {
+	public interface class ITrack
+	{
+	public:
+		int GetPosition();
+		Platform::String ^GetName();
+	};
+
 	public interface class IPlayList
 	{
 	public:
-		void CreatePlayList();
+		Windows::Foundation::Collections::IVector<ITrack^> ^CreatePlayList();
 		Windows::Storage::Streams::IRandomAccessStream ^GetStream(int trackNumber);
 		bool CheckNext(int currentNumber);
 		int GetPlayListLength();
 	};
 
-
 	public ref class Reader sealed
 	{
+
+		struct compare
+		{
+			bool operator() (ITrack ^song1, ITrack ^song2) const
+			{
+				return song1->GetPosition() < song2->GetPosition();
+			}
+		};
+
 	public:
 		Reader();
-		//void Play(Windows::Foundation::Collections::IVector<int> ^playlist);	transfer C# List in C++
+		//void OpenPlayList(Windows::Foundation::Collections::IVector<ITrack^> ^playlist);	// C# List in C++
 		void Play(IPlayList ^playList);
 		void Rewinding(double setPosition);
 		void SetMarker(int64 startPos, int trackNum);
@@ -42,11 +57,14 @@ namespace MediaExtension
 		std::shared_ptr<XAudio2Player> player;
 		Microsoft::WRL::ComPtr<IXAudio2> xAudio2;
 		IPlayList ^currentPlayList;
+		Windows::Foundation::Collections::IVector<ITrack^> ^trackList;
 		std::shared_ptr<AudioEvents> events;
 		int trackNumber = 0;
 		std::list<std::shared_ptr<XAudio2Player>> playersList;
+		int64_t globalDuration = 0;
 
 		void SortPlaylist();
+		int64_t FindSongDurationFromPlayList(int numSong);
 	};
 }
 

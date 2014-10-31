@@ -10,6 +10,7 @@
 #include <xaudio2.h>
 #include <xaudio2fx.h>
 #include <propvarutil.h>
+#include <collection.h>
 #include "AudioReader.h"
 #include "MFAudioReader.h"
 #include "MFAudioEvents.h"
@@ -17,16 +18,15 @@
 using namespace MediaExtension;
 using namespace Platform;
 
-#include <collection.h>
-
 Reader::Reader()
 {
 	this->player = std::shared_ptr<XAudio2Player>(new XAudio2Player());
 }
 
-//void Reader::Play(Windows::Foundation::Collections::IVector<int> ^playlist)
+//void Reader::OpenPlayList(Windows::Foundation::Collections::IVector<ITrack^> ^playlist)
 //{
-//	//Platform::Collections::Vector<int> ^v = ref new Platform::Collections::Vector<int>();		//return C++ List in C#
+//	Platform::Collections::Vector<int> ^v = ref new Platform::Collections::Vector<int>();		//return C++ List in C#
+//	std::sort(begin(playlist), end(playlist));
 //}
 
 void Reader::Play(IPlayList ^playList)
@@ -36,7 +36,7 @@ void Reader::Play(IPlayList ^playList)
 	MFAudioReader *reader = new MFAudioReader();
 	this->currentPlayList = playList;
 
-	this->currentPlayList->CreatePlayList();
+	this->trackList = this->currentPlayList->CreatePlayList();
 	this->SortPlaylist();
 
 	{
@@ -88,7 +88,13 @@ void Reader::Stop()
 
 void Reader::FindGlobalDuration()
 {
-
+	for (int i = 0; i < this->currentPlayList->GetPlayListLength(); i++)
+	{
+		if (i == 0)
+			this->globalDuration += (this->FindSongDurationFromPlayList(i) + this->trackList->GetAt(i)->GetPosition());
+		if (i > 0)
+			this->globalDuration += (this->trackList->GetAt(i)->GetPosition() + this->FindSongDurationFromPlayList(i) - this->FindSongDurationFromPlayList(i-1));
+	}
 }
 
 void Reader::FindGlobalTrackPosition()
@@ -136,5 +142,15 @@ void Reader::IfMarkerMet()
 //sorting playlist by global song's positions in playlist
 void Reader::SortPlaylist()
 {
-	
+	std::sort(begin(this->trackList), end(this->trackList), compare());
+}
+
+int64_t Reader::FindSongDurationFromPlayList(int numSong)
+{
+	Windows::Storage::Streams::IRandomAccessStream ^stream;
+	MFAudioReader *reader = new MFAudioReader();
+	stream = this->currentPlayList->GetStream(numSong);
+	Int64Rational songDuration = reader->GetAudioDuration();
+	int64_t convertSongDuration = songDuration.Convert(Rational::HNS).value;
+	return convertSongDuration;
 }

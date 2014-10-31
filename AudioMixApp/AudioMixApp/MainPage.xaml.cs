@@ -125,38 +125,50 @@ namespace AudioMixApp
         }
     }
 
-    //make an interfase in Reader. sent Track instead of IPlayList
-    public class Track
+    //make an interfase in Reader. sent List of Track instead of IPlayList
+    public class Track : ITrack
     {
         public Track(int globalPos, string name)
         {
             globalPosInPlayList = globalPos;
-            this.name = name;
+            trackName = name;
+        }
+
+        public virtual int GetPosition()
+        {
+            return globalPosInPlayList;
+        }
+
+        public virtual string GetName()
+        {
+            return trackName;
         }
 
         public int globalPosInPlayList; //song position relatively begin of global playlist duration
-        public string name;
+        public string trackName;
     }
 
     public class CreatingPlaylist : IPlayList
     {
         private IRandomAccessStream stream;
-        public List<Track> trackList;
-        private Track track;
+        private IList<ITrack> trackList;
+        private ITrack track;
 
         //global positions sets outside
-        public virtual void CreatePlayList()
+        public virtual IList<ITrack> CreatePlayList()
         {
-            trackList = new List<Track>();
+            trackList = new List<ITrack>();
 
             AddTrackInPlayList(0, "Assets\\1 Caroline Duris - Barrage(original mix).mp3");
             AddTrackInPlayList(30, "Assets\\02 - Master of Puppets.mp3");
             AddTrackInPlayList(10, "Assets\\02 Quutamo.mp3");
+            
+            return trackList;
         }
 
         public virtual IRandomAccessStream GetStream(int trackNumber)
         {
-            var t = Package.Current.InstalledLocation.GetFileAsync(trackList[trackNumber].name).AsTask();
+            var t = Package.Current.InstalledLocation.GetFileAsync(trackList[trackNumber].GetName()).AsTask();
             t.Wait();
             StorageFile file = t.Result;
 
@@ -170,7 +182,7 @@ namespace AudioMixApp
 
         public virtual bool CheckNext(int currentNumber)
         {
-            if (trackList[currentNumber + 1].name != "" && trackList[currentNumber + 1] != null)
+            if (trackList[currentNumber + 1].GetName() != "" && trackList[currentNumber + 1] != null)
                 return true;   
             return false;
         }
