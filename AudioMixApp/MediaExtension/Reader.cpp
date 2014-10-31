@@ -88,12 +88,13 @@ void Reader::Stop()
 
 void Reader::FindGlobalDuration()
 {
-	for (int i = 0; i < this->currentPlayList->GetPlayListLength(); i++)
+	this->globalDuration += (this->trackList->GetAt(0)->GetPosition() + this->FindSongDurationFromPlayList(0));
+
+	for (int i = 1; i <= this->currentPlayList->GetPlayListLength(); i++)
 	{
-		if (i == 0)
-			this->globalDuration += (this->FindSongDurationFromPlayList(i) + this->trackList->GetAt(i)->GetPosition());
-		if (i > 0)
-			this->globalDuration += (this->trackList->GetAt(i)->GetPosition() + this->FindSongDurationFromPlayList(i) - this->FindSongDurationFromPlayList(i-1));
+		int64_t tmp = this->trackList->GetAt(i)->GetPosition() + this->FindSongDurationFromPlayList(i) - this->globalDuration;
+		if (tmp > 0)
+			this->globalDuration += tmp;
 	}
 }
 
