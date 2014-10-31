@@ -68,11 +68,11 @@ void XAudio2Player::SetPosition(Rational ratio, double position)
 		this->SubmitBuffer();
 }
 
-//если новая позиция отрицательная то начало нового трека = длина предыдущего + новая позиция. пока только для маркеров<0
+//tmp func
 bool XAudio2Player::IfStartPosAchieved()
 {
 	
-	LONGLONG startPos = (this->GetDuration() + marker) * 10000000;	//заглушка
+	LONGLONG startPos = (this->GetDuration() + marker) * 10000000;
 	//this->marker.activate = false;
 	if (this->currentPosition >= startPos)
 	{
@@ -165,10 +165,20 @@ void XAudio2Player::SubmitBuffer()
 			this->currentPosition = sample->GetSampleTime();
 			this->samples.push(std::move(sample));
 
+			//if newpos <0 start pos = previous track duration + new pos. now for newpos<0 only 
 			if (this->marker < 0)
+			{
 				if (this->IfStartPosAchieved())
+				{
 					if (this->events)
-						this->events->IfMarker();
+					{
+						concurrency::create_task([=]()
+						{
+							this->events->IfMarker();
+						});
+					}
+				}
+			}			
 		}
 		else
 		{
