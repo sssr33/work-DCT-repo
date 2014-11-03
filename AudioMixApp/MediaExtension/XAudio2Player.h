@@ -9,53 +9,19 @@
 #include <wrl.h>
 #include <xaudio2.h>
 #include <xaudio2fx.h>
-#include "AudioReader.h"
 #include <memory>
 #include <mutex>
 #include <thread>
 #include <queue>
 #include <condition_variable>
 #include "AudioEvents.h"
-#include <list>
+#include "Marker.h"
 
 namespace MediaExtension
 {
 	struct SourceVoiceDeleter
 	{
 		void operator()(IXAudio2SourceVoice *obj);
-	};
-
-	struct Marker
-	{
-		Marker() : startPos(0) {}
-
-		void SetMarker(LONGLONG pos, int number, Rational ratio)
-		{
-			this->startPos = pos;
-			this->trackNumber = number;
-			this->ratio = ratio;
-		}
-
-		void ResetMarker()
-		{
-			this->activate = false;
-		}
-
-		LONGLONG GetMarkerPosition()
-		{
-			return this->startPos;
-		}
-
-		int GetNextTrack()
-		{
-			return this->trackNumber;
-		}
-
-	private:
-		Rational ratio;
-		LONGLONG startPos;
-		uint16 trackNumber;
-		bool activate = true;
 	};
 	
 	class XAudio2Player : public IXAudio2VoiceCallback
@@ -70,9 +36,7 @@ namespace MediaExtension
 		void SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2);
 		void SetMarker(LONGLONG pos, int number, Rational ratio);
 		void Stop();
-		void Initialize(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2, std::shared_ptr<AudioEvents> e);
-
-		LONGLONG marker = 0;
+		void Initialize(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2, std::shared_ptr<AudioEvents> e, std::vector<Marker> markers);
 
 	private:
 		Microsoft::WRL::ComPtr<IXAudio2> xAudio2;
@@ -84,14 +48,14 @@ namespace MediaExtension
 		std::shared_ptr<AudioEvents> events;
 		std::mutex samplesMutex;
 		std::queue<std::unique_ptr<AudioSample>> samples;
-		Marker markeR;
-		//std::list<Marker> markersList;
 		bool stopped;
+		int markerIndex = 0;
+		std::vector<Marker> markers;	//errors
 
 		void SubmitBuffer();
 		void DeleteSamples();
-		bool IfStartPosAchieved();
 		void FlushSourceVoice();
+		LONGLONG CurrentPositionInSeconds(LONGLONG currPos);
 
 		virtual void STDMETHODCALLTYPE OnVoiceProcessingPassStart(UINT32 bytesRequired) override {}
 		virtual void STDMETHODCALLTYPE OnVoiceProcessingPassEnd(){}

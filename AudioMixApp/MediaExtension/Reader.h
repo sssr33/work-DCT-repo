@@ -4,7 +4,7 @@
 #include "MFAudioSample.h"
 #include "XAudio2Player.h"
 #include "InitMasterVoice.h"
-#include "AudioEvents.h"
+#include "Marker.h"
 #include <list>
 
 namespace MediaExtension
@@ -38,7 +38,6 @@ namespace MediaExtension
 
 	public:
 		Reader();
-		//void OpenPlayList(Windows::Foundation::Collections::IVector<ITrack^> ^playlist);	// C# List in C++
 		void Play(IPlayList ^playList);
 		void Rewinding(double setPosition);
 		void SetMarker(int64 startPos, int trackNum);
@@ -47,7 +46,6 @@ namespace MediaExtension
 		LONGLONG CurrPos();
 		void Stop();
 		void FindGlobalDuration();
-		void FindGlobalTrackPosition();
 
 		void EndOfRewindingTrack();
 		void EndOfPlayingTrack();
@@ -62,9 +60,11 @@ namespace MediaExtension
 		int trackNumber = 0;
 		std::list<std::shared_ptr<XAudio2Player>> playersList;
 		int64_t globalDuration = 0;
+		std::vector<std::vector<Marker>> markersList;
 
 		void SortPlaylist();
 		int64_t FindSongDurationFromPlayList(int numSong);
+		void FindMarkers();
 	};
 }
 
