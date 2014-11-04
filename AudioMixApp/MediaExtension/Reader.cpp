@@ -29,8 +29,8 @@ void Reader::Play(IPlayList ^playList)
 	Windows::Storage::Streams::IRandomAccessStream ^stream;
 	MFAudioReader *reader = new MFAudioReader();
 	this->currentPlayList = playList;
-
 	this->trackList = this->currentPlayList->CreatePlayList();
+
 	this->SortPlaylist();
 	this->FindGlobalDuration();
 	this->FindMarkers();
@@ -40,13 +40,13 @@ void Reader::Play(IPlayList ^playList)
 		tmppEvents->InitEvent(this);
 		this->events = std::shared_ptr<AudioEvents>(tmppEvents);
 	}	
-	
-	stream = this->currentPlayList->GetStream(trackNumber);
+
+	stream = this->currentPlayList->GetStream(this->trackNumber);
 	this->xAudio2 = InitMasterVoice::GetInstance().GetXAudio();
 
 	reader->Initialize(stream);
-	std::vector<Marker> markers = this->markersList[trackNumber];
-	this->player->Initialize(reader, this->xAudio2, this->events, markers);	//create new player and play	//send marker in player
+	std::vector<Marker> markers = this->markersList[0];
+	this->player->Initialize(reader, this->xAudio2, this->events, markers);	//create new player and play
 
 	this->playersList.push_back(this->player);
 }
@@ -114,18 +114,19 @@ void Reader::EndOfPlayingTrack()	//begin playing new track in same player
 	}
 }
 
-void Reader::IfMarkerMet()
+void Reader::IfMarkerMet(int i)
 {
 	InitMasterVoice::GetInstance();
 	Windows::Storage::Streams::IRandomAccessStream ^stream;
 	MFAudioReader *reader = new MFAudioReader();
 	auto p = std::shared_ptr<XAudio2Player>(new XAudio2Player());
 	this->xAudio2 = InitMasterVoice::GetInstance().GetXAudio();
-	stream = this->currentPlayList->GetStream(++this->trackNumber);
 
+	stream = this->currentPlayList->GetStream(++this->trackNumber);
 	reader->Initialize(stream);
-	std::vector<Marker> markers = this->markersList[trackNumber-1];
-	p->Initialize(reader, this->xAudio2, this->events, markers);		//create new player and play since new position	//send marker in player
+
+	std::vector<Marker> markers = this->markersList[i];
+	p->Initialize(reader, this->xAudio2, this->events, markers);		//create new player and play since new position
 
 	this->playersList.push_back(p);
 }
@@ -154,18 +155,28 @@ void Reader::FindMarkers()
 	for (int i = 0; i < this->currentPlayList->GetPlayListLength(); )
 	{
 		int j = i + 1;
-		std::vector<Marker> marker;
+		std::vector<Marker> markers;
+		std::vector<Marker> voidMarkers;
+
 		int64_t currentEnd = this->trackList->GetAt(i)->GetPosition() + this->FindSongDurationFromPlayList(i);
+
 		while (this->trackList->GetAt(j)->GetPosition() < currentEnd)
 		{
 			int posRelPrev = this->trackList->GetAt(j)->GetPosition() - this->trackList->GetAt(i)->GetPosition();
-			m.SetMarker(posRelPrev, j);
-			marker.push_back(m);
+			m.SetMarker(posRelPrev, i);
+			markers.push_back(m);
 			j++;
 			if (j >= this->currentPlayList->GetPlayListLength())
-				break;
+				break;	
 		}
-		this->markersList.push_back(marker);
+		this->markersList.push_back(markers);
+
+		while ((j-i-1) > 0)
+		{
+			this->markersList.push_back(voidMarkers);
+			i++;
+		}
+
 		i = j;
 	}
 }

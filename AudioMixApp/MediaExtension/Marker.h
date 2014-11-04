@@ -22,7 +22,7 @@ struct Marker
 		return this->startPos;
 	}
 
-	int GetNextTrack()
+	int GetTrackIndex()
 	{
 		return this->trackNumber;
 	}

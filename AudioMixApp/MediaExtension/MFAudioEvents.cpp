@@ -31,9 +31,9 @@ void MFAudioEvents::EndOfRewinding()
 	this->e->EndOfRewindingTrack();
 }
 
-void MFAudioEvents::IfMarker()
+void MFAudioEvents::IfMarker(int i)
 {
-	this->e->IfMarkerMet();
+	this->e->IfMarkerMet(i);
 }
 
 void MFAudioEvents::InitEvent(Reader ^reader)

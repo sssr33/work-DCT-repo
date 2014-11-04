@@ -49,7 +49,7 @@ namespace MediaExtension
 
 		void EndOfRewindingTrack();
 		void EndOfPlayingTrack();
-		void IfMarkerMet();
+		void IfMarkerMet(int i);
 
 	private:
 		std::shared_ptr<XAudio2Player> player;

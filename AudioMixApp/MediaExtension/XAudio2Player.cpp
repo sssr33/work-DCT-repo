@@ -151,18 +151,25 @@ void XAudio2Player::SubmitBuffer()
 			this->currentPosition = sample->GetSampleTime();
 			this->samples.push(std::move(sample));
 
-			int tmp = GetCurrentPosition();	/////
+			int64_t tmp = GetCurrentPosition();	/////
 
-			if (this->GetCurrentPosition() >= this->markers[markerIndex].GetMarkerPosition())
-				if (markerIndex < this->markers.size())
+			if (markers.size())
+			if (this->markerIndex < this->markers.size())
+			{
+				if (this->GetCurrentPosition() >= this->markers[this->markerIndex].GetMarkerPosition())
+				{
 					if (this->events)
 					{
-						markerIndex++;
+						int markerIndexCopy = this->markerIndex;
 						concurrency::create_task([=]()
 						{
-							this->events->IfMarker();
+							this->events->IfMarker(markerIndex);
 						});
-					}		
+
+						this->markerIndex++;
+					}
+				}
+			}
 		}
 		else
 		{
@@ -195,9 +202,4 @@ void XAudio2Player::DeleteSamples()
 {
 	std::unique_lock<std::mutex> lock(this->samplesMutex);
 	this->samples.pop();
-}
-
-LONGLONG XAudio2Player::CurrentPositionInSeconds(LONGLONG currPos)
-{
-	return this->currentPosition / 10000000;
 }

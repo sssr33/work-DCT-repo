@@ -23,7 +23,7 @@ namespace MediaExtension
 
 		virtual void EndOfPlaying() override;
 		virtual void EndOfRewinding() override;
-		virtual void IfMarker() override;
+		virtual void IfMarker(int i) override;
 		void InitEvent(Reader ^reader);
 
 	private:

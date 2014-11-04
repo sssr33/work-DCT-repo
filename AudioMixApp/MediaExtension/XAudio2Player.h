@@ -50,12 +50,11 @@ namespace MediaExtension
 		std::queue<std::unique_ptr<AudioSample>> samples;
 		bool stopped;
 		int markerIndex = 0;
-		std::vector<Marker> markers;	//errors
+		std::vector<Marker> markers;
 
 		void SubmitBuffer();
 		void DeleteSamples();
 		void FlushSourceVoice();
-		LONGLONG CurrentPositionInSeconds(LONGLONG currPos);
 
 		virtual void STDMETHODCALLTYPE OnVoiceProcessingPassStart(UINT32 bytesRequired) override {}
 		virtual void STDMETHODCALLTYPE OnVoiceProcessingPassEnd(){}
