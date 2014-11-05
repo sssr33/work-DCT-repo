@@ -160,7 +160,6 @@ void XAudio2Player::SubmitBuffer()
 				{
 					if (this->events)
 					{
-						int markerIndexCopy = this->markerIndex;
 						concurrency::create_task([=]()
 						{
 							this->events->IfMarker(markerIndex);

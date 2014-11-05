@@ -114,7 +114,7 @@ namespace AudioMixApp
         {
             if (player != null)
             {
-                player.Rewinding(e.NewValue*((double) player.Duration.Duration().Ticks/100));
+                player.Rewinding(e.NewValue*((double) player.GetGlobalDuration()/100));
                 newPosition = e.NewValue;
             }
         }
@@ -160,7 +160,7 @@ namespace AudioMixApp
             trackList = new List<ITrack>();
 
             AddTrackInPlayList(0, "Assets\\1 Caroline Duris - Barrage(original mix).mp3");
-            AddTrackInPlayList(15, "Assets\\02 - Master of Puppets.mp3");
+            //AddTrackInPlayList(25, "Assets\\02 - Master of Puppets.mp3");
             AddTrackInPlayList(10, "Assets\\02 Quutamo.mp3");
 
             return trackList;

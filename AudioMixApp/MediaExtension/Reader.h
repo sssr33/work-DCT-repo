@@ -46,6 +46,7 @@ namespace MediaExtension
 		LONGLONG CurrPos();
 		void Stop();
 		void FindGlobalDuration();
+		int GetGlobalDuration();
 
 		void EndOfRewindingTrack();
 		void EndOfPlayingTrack();
@@ -58,9 +59,10 @@ namespace MediaExtension
 		Windows::Foundation::Collections::IVector<ITrack^> ^trackList;
 		std::shared_ptr<AudioEvents> events;
 		int trackNumber = 0;
-		std::list<std::shared_ptr<XAudio2Player>> playersList;
+		std::vector<std::shared_ptr<XAudio2Player>> playersList;
 		int64_t globalDuration = 0;
 		std::vector<std::vector<Marker>> markersList;
+		std::mutex lockPlayList;
 
 		void SortPlaylist();
 		int64_t FindSongDurationFromPlayList(int numSong);

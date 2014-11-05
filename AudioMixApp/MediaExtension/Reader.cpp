@@ -48,12 +48,29 @@ void Reader::Play(IPlayList ^playList)
 	std::vector<Marker> markers = this->markersList[0];
 	this->player->Initialize(reader, this->xAudio2, this->events, markers);	//create new player and play
 
+	this->lockPlayList.lock();
 	this->playersList.push_back(this->player);
+	this->lockPlayList.unlock();
 }
 
 void Reader::Rewinding(double setPosition)
 {
-	this->player->SetPosition(Rational::SEC, setPosition);
+	
+	for (int i = 0; i < this->playersList.size(); i++)
+	{
+		if ((this->trackList->GetAt(i)->GetPosition() <= (int)setPosition) && (this->playersList[i]->GetDuration() > (int)setPosition))
+			this->playersList[i]->SetPosition(Rational::SEC, setPosition);	//make rewinding
+		else
+		{
+			this->playersList.pop_back();	//delete current player
+			this->trackNumber--;
+
+			if (this->trackList->GetAt(i)->GetPosition() > (int)setPosition)
+				this->playersList[i - 1]->markerIndex--;
+		}
+	}
+	
+	//this->player->SetPosition(Rational::SEC, setPosition);
 }
 
 void Reader::SetMarker(int64 startPos, int trackNum)
@@ -80,7 +97,10 @@ LONGLONG Reader::CurrPos()
 
 void Reader::Stop()
 {
-	this->player->Stop();
+	for (int i = 0; i < this->playersList.size(); i++)
+	{
+		this->playersList[i]->Stop();
+	}
 }
 
 void Reader::FindGlobalDuration()
@@ -106,12 +126,13 @@ void Reader::EndOfPlayingTrack()	//begin playing new track in same player
 	MFAudioReader *reader = new MFAudioReader();
 	int playlistLength = this->currentPlayList->GetPlayListLength();
 
-	if (this->currentPlayList->CheckNext(this->trackNumber) && this->trackNumber<playlistLength)
-	{
-		stream = this->currentPlayList->GetStream(++this->trackNumber);
-		reader->Initialize(stream);
-		this->player->SetAudioData(reader, this->xAudio2);
-	}
+	if (this->trackNumber < playlistLength-1)
+		if (this->currentPlayList->CheckNext(this->trackNumber))
+		{
+			stream = this->currentPlayList->GetStream(++this->trackNumber);
+			reader->Initialize(stream);
+			this->player->SetAudioData(reader, this->xAudio2);
+		}
 }
 
 void Reader::IfMarkerMet(int i)
@@ -128,7 +149,22 @@ void Reader::IfMarkerMet(int i)
 	std::vector<Marker> markers = this->markersList[i];
 	p->Initialize(reader, this->xAudio2, this->events, markers);		//create new player and play since new position
 
-	this->playersList.push_back(p);
+	if (this->playersList[i - 1]->GetCurrentPosition() < p->GetDuration())
+	{
+		if (this->playersList[i - 1]->GetCurrentPosition() > this->trackList->GetAt(i)->GetPosition())	//if immediately rewound it  a new track will be played from the new position, but not with a marker
+		{
+			this->lockPlayList.lock();
+			this->playersList.push_back(p);
+			this->lockPlayList.unlock();
+			this->playersList[i]->SetPosition(Rational::SEC, this->playersList[i - 1]->GetCurrentPosition() - this->trackList->GetAt(i)->GetPosition());
+		}
+		else
+		{
+			this->lockPlayList.lock();
+			this->playersList.push_back(p);
+			this->lockPlayList.unlock();
+		}
+	}
 }
 
 //sorting playlist by global song's positions in playlist
@@ -151,7 +187,7 @@ int64_t Reader::FindSongDurationFromPlayList(int numSong)
 // i - song index, j - marker in song
 void Reader::FindMarkers()
 {
-	Marker m;
+	Marker marker;
 	for (int i = 0; i < this->currentPlayList->GetPlayListLength(); )
 	{
 		int j = i + 1;
@@ -163,8 +199,8 @@ void Reader::FindMarkers()
 		while (this->trackList->GetAt(j)->GetPosition() < currentEnd)
 		{
 			int posRelPrev = this->trackList->GetAt(j)->GetPosition() - this->trackList->GetAt(i)->GetPosition();
-			m.SetMarker(posRelPrev, i);
-			markers.push_back(m);
+			marker.SetMarker(posRelPrev, i);
+			markers.push_back(marker);
 			j++;
 			if (j >= this->currentPlayList->GetPlayListLength())
 				break;	
@@ -179,4 +215,9 @@ void Reader::FindMarkers()
 
 		i = j;
 	}
+}
+
+int Reader::GetGlobalDuration()
+{
+	return this->globalDuration;
 }

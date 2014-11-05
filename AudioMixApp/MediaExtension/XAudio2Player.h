@@ -38,6 +38,8 @@ namespace MediaExtension
 		void Stop();
 		void Initialize(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2, std::shared_ptr<AudioEvents> e, std::vector<Marker> markers);
 
+		int markerIndex = 0;
+
 	private:
 		Microsoft::WRL::ComPtr<IXAudio2> xAudio2;
 		std::shared_ptr<IXAudio2SourceVoice> sourceVoice;
@@ -49,7 +51,6 @@ namespace MediaExtension
 		std::mutex samplesMutex;
 		std::queue<std::unique_ptr<AudioSample>> samples;
 		bool stopped;
-		int markerIndex = 0;
 		std::vector<Marker> markers;
 
 		void SubmitBuffer();
