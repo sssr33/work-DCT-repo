@@ -19,7 +19,7 @@ namespace MediaExtension
 		AudioEvents();
 		~AudioEvents();
 		virtual void EndOfRewinding() = 0;
-		virtual void EndOfPlaying() = 0;
+		virtual void EndOfPlaying(int c) = 0;
 		virtual void IfMarker(int i) = 0;
 	};
 }

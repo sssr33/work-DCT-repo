@@ -21,9 +21,9 @@ MFAudioEvents::~MFAudioEvents()
 
 }
 
-void MFAudioEvents::EndOfPlaying()
+void MFAudioEvents::EndOfPlaying(int c)
 {
-	this->e->EndOfPlayingTrack();
+	this->e->EndOfPlayingTrack(c);
 }
 
 void MFAudioEvents::EndOfRewinding()

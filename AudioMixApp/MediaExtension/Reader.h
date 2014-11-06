@@ -40,7 +40,6 @@ namespace MediaExtension
 		Reader();
 		void Play(IPlayList ^playList);
 		void Rewinding(double setPosition);
-		void SetMarker(int64 startPos, int trackNum);
 		property Windows::Foundation::TimeSpan Duration	{ Windows::Foundation::TimeSpan get(); }
 		void Volume(float setVolume);
 		LONGLONG CurrPos();
@@ -49,7 +48,7 @@ namespace MediaExtension
 		int GetGlobalDuration();
 
 		void EndOfRewindingTrack();
-		void EndOfPlayingTrack();
+		void EndOfPlayingTrack(int c);
 		void IfMarkerMet(int i);
 
 	private:

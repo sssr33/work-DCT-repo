@@ -9,7 +9,7 @@ struct Marker
 	void SetMarker(LONGLONG pos, int number)
 	{
 		this->startPos = pos;
-		this->trackNumber = number;
+		this->markerForTrack = number;
 	}
 
 	void ResetMarker()
@@ -24,12 +24,12 @@ struct Marker
 
 	int GetTrackIndex()
 	{
-		return this->trackNumber;
+		return this->markerForTrack;
 	}
 
 	bool activate = true;
 
 private:
 	LONGLONG startPos;
-	uint16 trackNumber;
+	uint16 markerForTrack;
 };

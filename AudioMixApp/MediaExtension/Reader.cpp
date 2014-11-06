@@ -48,9 +48,8 @@ void Reader::Play(IPlayList ^playList)
 	std::vector<Marker> markers = this->markersList[0];
 	this->player->Initialize(reader, this->xAudio2, this->events, markers);	//create new player and play
 
-	this->lockPlayList.lock();
+	std::lock_guard<std::mutex> lock(this->lockPlayList);
 	this->playersList.push_back(this->player);
-	this->lockPlayList.unlock();
 }
 
 void Reader::Rewinding(double setPosition)
@@ -59,23 +58,22 @@ void Reader::Rewinding(double setPosition)
 	for (int i = 0; i < this->playersList.size(); i++)
 	{
 		if ((this->trackList->GetAt(i)->GetPosition() <= (int)setPosition) && (this->playersList[i]->GetDuration() > (int)setPosition))
-			this->playersList[i]->SetPosition(Rational::SEC, setPosition);	//make rewinding
+			this->playersList[i]->SetPosition(Rational::SEC, setPosition);	//if position inside track duration doing rewinding
 		else
-		{
-			this->playersList.pop_back();	//delete current player
-			this->trackNumber--;
+			if ((int)setPosition < this->trackList->GetAt(i)->GetPosition())
+			{
+				this->playersList[i-1]->ResetMarkerIndex();		//if position less than beginning track delete player, set previous marker
+				std::lock_guard<std::mutex> lock(this->lockPlayList);
+				this->playersList.pop_back();
+			}
+			else
+				if ((int)setPosition >= this->playersList[i - 1]->GetDuration())
+				{
+					std::lock_guard<std::mutex> lock(this->lockPlayList);
+					this->playersList.pop_back();		//if position greater than track duration delete player
+				}
 
-			if (this->trackList->GetAt(i)->GetPosition() > (int)setPosition)
-				this->playersList[i - 1]->markerIndex--;
-		}
 	}
-	
-	//this->player->SetPosition(Rational::SEC, setPosition);
-}
-
-void Reader::SetMarker(int64 startPos, int trackNum)
-{
-
 }
 
 Windows::Foundation::TimeSpan Reader::Duration::get()
@@ -101,6 +99,7 @@ void Reader::Stop()
 	{
 		this->playersList[i]->Stop();
 	}
+	//this->playersList.clear();
 }
 
 void Reader::FindGlobalDuration()
@@ -120,7 +119,7 @@ void Reader::EndOfRewindingTrack()
 
 }
 
-void Reader::EndOfPlayingTrack()	//begin playing new track in same player
+void Reader::EndOfPlayingTrack(int c)	//begin playing new track in same player
 {
 	Windows::Storage::Streams::IRandomAccessStream ^stream;
 	MFAudioReader *reader = new MFAudioReader();
@@ -131,11 +130,12 @@ void Reader::EndOfPlayingTrack()	//begin playing new track in same player
 		{
 			stream = this->currentPlayList->GetStream(++this->trackNumber);
 			reader->Initialize(stream);
-			this->player->SetAudioData(reader, this->xAudio2);
+			std::vector<Marker> markers = this->markersList[c];
+			this->player->SetAudioData(reader, this->xAudio2, markers);
 		}
 }
 
-void Reader::IfMarkerMet(int i)
+void Reader::IfMarkerMet(int i)	// i - is a marker index, so equals index of next song
 {
 	InitMasterVoice::GetInstance();
 	Windows::Storage::Streams::IRandomAccessStream ^stream;
@@ -149,20 +149,18 @@ void Reader::IfMarkerMet(int i)
 	std::vector<Marker> markers = this->markersList[i];
 	p->Initialize(reader, this->xAudio2, this->events, markers);		//create new player and play since new position
 
-	if (this->playersList[i - 1]->GetCurrentPosition() < p->GetDuration())
+	if (this->playersList[i-1]->GetCurrentPosition() < p->GetDuration())
 	{
-		if (this->playersList[i - 1]->GetCurrentPosition() > this->trackList->GetAt(i)->GetPosition())	//if immediately rewound it  a new track will be played from the new position, but not with a marker
+		if (this->playersList[i-1]->GetCurrentPosition() > this->trackList->GetAt(i)->GetPosition())	//if immediately rewound it  a new track will be played from the new position, but not with a marker
 		{
-			this->lockPlayList.lock();
+			std::lock_guard<std::mutex> lock(this->lockPlayList);
 			this->playersList.push_back(p);
-			this->lockPlayList.unlock();
-			this->playersList[i]->SetPosition(Rational::SEC, this->playersList[i - 1]->GetCurrentPosition() - this->trackList->GetAt(i)->GetPosition());
+			this->playersList[i]->SetPosition(Rational::SEC, this->playersList[i-1]->GetCurrentPosition() - this->trackList->GetAt(i)->GetPosition());
 		}
 		else
 		{
-			this->lockPlayList.lock();
+			std::lock_guard<std::mutex> lock(this->lockPlayList);
 			this->playersList.push_back(p);
-			this->lockPlayList.unlock();
 		}
 	}
 }

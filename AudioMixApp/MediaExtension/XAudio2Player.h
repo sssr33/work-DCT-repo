@@ -33,12 +33,12 @@ namespace MediaExtension
 		LONGLONG GetDuration();
 		void SetVolume(float volume);
 		void SetPosition(Rational ratio, double setPosition);
-		void SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2);
+		void SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2, std::vector<Marker> markers);
 		void SetMarker(LONGLONG pos, int number, Rational ratio);
 		void Stop();
 		void Initialize(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2, std::shared_ptr<AudioEvents> e, std::vector<Marker> markers);
-
-		int markerIndex = 0;
+		void ResetMarkerIndex();
+		void GoToNextSong();
 
 	private:
 		Microsoft::WRL::ComPtr<IXAudio2> xAudio2;
@@ -52,6 +52,8 @@ namespace MediaExtension
 		std::queue<std::unique_ptr<AudioSample>> samples;
 		bool stopped;
 		std::vector<Marker> markers;
+		int markerIndex = 0;	 //for marker lists
+		int trackIndex = 0;		// for change tracks, if new track playing in some player
 
 		void SubmitBuffer();
 		void DeleteSamples();

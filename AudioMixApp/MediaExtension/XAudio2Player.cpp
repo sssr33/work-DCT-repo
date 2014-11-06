@@ -89,7 +89,7 @@ void XAudio2Player::FlushSourceVoice()
 	this->samples = std::queue<std::unique_ptr<AudioSample>>();
 }
 
-void XAudio2Player::SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2)
+void XAudio2Player::SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2, std::vector<Marker> markers)
 {
 	HRESULT hr = S_OK;
 	WAVEFORMATEX *wF;
@@ -98,6 +98,7 @@ void XAudio2Player::SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXA
 
 	this->reader = reader;
 	this->xAudio2 = xAudio2;
+	this->markers = markers;
 	this->reader->GetWaveInfo(0, wF, wL);
 	hr = this->xAudio2->CreateSourceVoice(&tmpVoice, wF, 0, 2.0f, this);
 	this->sourceVoice = std::shared_ptr<IXAudio2SourceVoice>(tmpVoice, SourceVoiceDeleter());
@@ -118,8 +119,7 @@ void XAudio2Player::Stop()
 void XAudio2Player::Initialize(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> iXAudio2, std::shared_ptr<AudioEvents> e, std::vector<Marker> markers)
 {
 	this->events = e;
-	this->markers = markers;
-	this->SetAudioData(reader, iXAudio2);
+	this->SetAudioData(reader, iXAudio2, markers);
 }
 
 void XAudio2Player::SubmitBuffer()
@@ -153,16 +153,19 @@ void XAudio2Player::SubmitBuffer()
 
 			int64_t tmp = GetCurrentPosition();	/////
 
-			if (markers.size())
+			if (this->markers.size())
 			if (this->markerIndex < this->markers.size())
 			{
 				if (this->GetCurrentPosition() >= this->markers[this->markerIndex].GetMarkerPosition())
 				{
 					if (this->events)
 					{
+
+						//this->markerIndex++;
+
 						concurrency::create_task([=]()
 						{
-							this->events->IfMarker(markerIndex);
+							this->events->IfMarker(this->markerIndex);	//must be transmitted already increased markerIndex
 						});
 
 						this->markerIndex++;
@@ -179,7 +182,8 @@ void XAudio2Player::SubmitBuffer()
 				{
 					this->sourceVoice->Stop();
 					this->FlushSourceVoice();
-					this->events->EndOfPlaying();
+					this->GoToNextSong();
+					this->events->EndOfPlaying(this->trackIndex);
 				});
 			}
 		}
@@ -201,4 +205,14 @@ void XAudio2Player::DeleteSamples()
 {
 	std::unique_lock<std::mutex> lock(this->samplesMutex);
 	this->samples.pop();
+}
+
+void XAudio2Player::ResetMarkerIndex()
+{
+	this->markerIndex--;
+}
+
+void XAudio2Player::GoToNextSong()
+{
+	this->trackIndex++;
 }
