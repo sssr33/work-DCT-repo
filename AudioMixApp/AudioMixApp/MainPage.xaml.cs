@@ -1,28 +1,14 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 using Windows.Storage;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
-using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
-using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
-using Windows.Storage.FileProperties;
 using WindowsPreview.Media.Ocr;
 using Windows.Graphics.Imaging;
-
-using AudioMixApp;
 using MediaExtension;
 
 
@@ -37,11 +23,12 @@ namespace AudioMixApp
     {
         
         Reader player;
+        CreatingPlaylist playList;
         double newPosition = 0;
         OcrEngine ocrEngine;
         UInt32 width;
         UInt32 height;
-        CreatingPlaylist playList;
+        
 
         public MainPage()
         {
@@ -85,9 +72,13 @@ namespace AudioMixApp
             if (player != null)
                 player.Stop();
 
+            //while (true)
+            //{
             player = new Reader();
             playList = new CreatingPlaylist();
             player.Play(playList);
+            //  GC.Collect();
+            //}
 
             TimeSpan tmpDuration = player.Duration.Duration();
 

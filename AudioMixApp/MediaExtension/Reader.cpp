@@ -41,7 +41,7 @@ void Reader::Play(IPlayList ^playList)
 		this->events = std::shared_ptr<AudioEvents>(tmppEvents);
 	}	
 
-	stream = this->currentPlayList->GetStream(this->trackNumber);
+	stream = this->currentPlayList->GetStream(0);
 	this->xAudio2 = InitMasterVoice::GetInstance().GetXAudio();
 
 	reader->Initialize(stream);
@@ -67,8 +67,9 @@ void Reader::Rewinding(double setPosition)
 				this->playersList.pop_back();
 			}
 			else
-				if ((int)setPosition >= this->playersList[i - 1]->GetDuration())
+				if ((int)setPosition >= this->playersList[i]->GetDuration())
 				{
+					this->playersList[i - 1]->ResetMarkerIndex();
 					std::lock_guard<std::mutex> lock(this->lockPlayList);
 					this->playersList.pop_back();		//if position greater than track duration delete player
 				}
@@ -125,10 +126,10 @@ void Reader::EndOfPlayingTrack(int c)	//begin playing new track in same player
 	MFAudioReader *reader = new MFAudioReader();
 	int playlistLength = this->currentPlayList->GetPlayListLength();
 
-	if (this->trackNumber < playlistLength-1)
-		if (this->currentPlayList->CheckNext(this->trackNumber))
+	if (c < playlistLength - 1)
+		if (this->currentPlayList->CheckNext(c - 1))
 		{
-			stream = this->currentPlayList->GetStream(++this->trackNumber);
+			stream = this->currentPlayList->GetStream(c);
 			reader->Initialize(stream);
 			std::vector<Marker> markers = this->markersList[c];
 			this->player->SetAudioData(reader, this->xAudio2, markers);
@@ -143,7 +144,7 @@ void Reader::IfMarkerMet(int i)	// i - is a marker index, so equals index of nex
 	auto p = std::shared_ptr<XAudio2Player>(new XAudio2Player());
 	this->xAudio2 = InitMasterVoice::GetInstance().GetXAudio();
 
-	stream = this->currentPlayList->GetStream(++this->trackNumber);
+	stream = this->currentPlayList->GetStream(i);
 	reader->Initialize(stream);
 
 	std::vector<Marker> markers = this->markersList[i];
@@ -162,6 +163,11 @@ void Reader::IfMarkerMet(int i)	// i - is a marker index, so equals index of nex
 			std::lock_guard<std::mutex> lock(this->lockPlayList);
 			this->playersList.push_back(p);
 		}
+	}
+	else
+	{
+		this->playersList[i - 1]->ResetMarkerIndex();
+		p->Stop();
 	}
 }
 

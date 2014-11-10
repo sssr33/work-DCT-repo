@@ -52,7 +52,7 @@ namespace MediaExtension
 		std::queue<std::unique_ptr<AudioSample>> samples;
 		bool stopped;
 		std::vector<Marker> markers;
-		int markerIndex = 0;	 //for marker lists
+		int markerIndex = 0;	 //for marker lists and change tracks
 		int trackIndex = 0;		// for change tracks, if new track playing in some player
 
 		void SubmitBuffer();

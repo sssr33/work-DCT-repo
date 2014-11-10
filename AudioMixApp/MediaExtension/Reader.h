@@ -57,7 +57,6 @@ namespace MediaExtension
 		IPlayList ^currentPlayList;
 		Windows::Foundation::Collections::IVector<ITrack^> ^trackList;
 		std::shared_ptr<AudioEvents> events;
-		int trackNumber = 0;
 		std::vector<std::shared_ptr<XAudio2Player>> playersList;
 		int64_t globalDuration = 0;
 		std::vector<std::vector<Marker>> markersList;
