@@ -19,7 +19,8 @@ namespace MediaExtension
 	public interface class IPlayList
 	{
 	public:
-		Windows::Foundation::Collections::IVector<ITrack^> ^CreatePlayList();
+		void SortPlaylist();
+		ITrack ^GetTrack(int index);
 		Windows::Storage::Streams::IRandomAccessStream ^GetStream(int trackNumber);
 		bool CheckNext(int currentNumber);
 		int GetPlayListLength();
@@ -55,14 +56,14 @@ namespace MediaExtension
 		std::shared_ptr<XAudio2Player> player;
 		Microsoft::WRL::ComPtr<IXAudio2> xAudio2;
 		IPlayList ^currentPlayList;
-		Windows::Foundation::Collections::IVector<ITrack^> ^trackList;
+		//Windows::Foundation::Collections::IVector<ITrack^> ^trackList;
 		std::shared_ptr<AudioEvents> events;
 		std::vector<std::shared_ptr<XAudio2Player>> playersList;
 		int64_t globalDuration = 0;
 		std::vector<std::vector<Marker>> markersList;
 		std::mutex lockPlayList;
 
-		void SortPlaylist();
+		//void SortPlaylist();
 		int64_t FindSongDurationFromPlayList(int numSong);
 		void FindMarkers();
 	};

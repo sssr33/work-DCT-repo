@@ -1,24 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using Windows.ApplicationModel;
-using Windows.Storage;
+using Windows.Foundation.Collections;
+using Windows.Media.Playback;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
 using Windows.UI.Xaml.Navigation;
-using Windows.Storage.Streams;
 using WindowsPreview.Media.Ocr;
 using Windows.Graphics.Imaging;
+using MediaData;
 using MediaExtension;
-
-
-// The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=391641
 
 namespace AudioMixApp
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
     public sealed partial class MainPage : Page
     {
         
@@ -28,7 +22,7 @@ namespace AudioMixApp
         OcrEngine ocrEngine;
         UInt32 width;
         UInt32 height;
-        
+        private MediaPlayer mediaPlayer;
 
         public MainPage()
         {
@@ -36,6 +30,11 @@ namespace AudioMixApp
             this.NavigationCacheMode = NavigationCacheMode.Required;
             ocrEngine = new OcrEngine(OcrLanguage.English);
             OcrText.IsReadOnly = true;
+        }
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            mediaPlayer = BackgroundMediaPlayer.Current;
         }
 
         private async void Extract_Click(object sender, RoutedEventArgs e)
@@ -71,18 +70,23 @@ namespace AudioMixApp
         {
             if (player != null)
                 player.Stop();
+            
+            //playList = new CreatingPlaylist();
+            //playList.CreatePlayList();
+            //player = new Reader();
+            //player.Play(playList);
 
-            //while (true)
+            //if (player != null)
             //{
-            player = new Reader();
-            playList = new CreatingPlaylist();
-            player.Play(playList);
-            //  GC.Collect();
+            //    TimeSpan tmpDuration = player.Duration.Duration();
             //}
-
-            TimeSpan tmpDuration = player.Duration.Duration();
-
             sliderVolume.Value = 100;
+
+            //playList = new CreatingPlaylist();
+            //playList.CreatePlayList();
+
+            var messageToBackground = new ValueSet { { "Play", "qwerty" } };
+            BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -113,80 +117,6 @@ namespace AudioMixApp
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
             Application.Current.Exit();
-        }
-    }
-
-    //make an interfase in Reader. sent List of Track instead of IPlayList
-    public class Track : ITrack
-    {
-        public Track(int globalPos, string name)
-        {
-            globalPosInPlayList = globalPos;
-            trackName = name;
-        }
-
-        public virtual int GetPosition()
-        {
-            return globalPosInPlayList;
-        }
-
-        public virtual string GetName()
-        {
-            return trackName;
-        }
-
-        public int globalPosInPlayList; //song position relatively begin of global playlist duration
-        public string trackName;
-    }
-
-    public class CreatingPlaylist : IPlayList
-    {
-        private IRandomAccessStream stream;
-        private IList<ITrack> trackList;
-        private ITrack track;
-
-        //global positions sets outside
-        public virtual IList<ITrack> CreatePlayList()
-        {
-            trackList = new List<ITrack>();
-
-            AddTrackInPlayList(0, "Assets\\1 Caroline Duris - Barrage(original mix).mp3");
-            //AddTrackInPlayList(25, "Assets\\02 - Master of Puppets.mp3");
-            AddTrackInPlayList(10, "Assets\\02 Quutamo.mp3");
-
-            return trackList;
-        }
-
-        public virtual IRandomAccessStream GetStream(int trackNumber)
-        {
-            var t = Package.Current.InstalledLocation.GetFileAsync(trackList[trackNumber].GetName()).AsTask();
-            t.Wait();
-            StorageFile file = t.Result;
-
-            var t2 = file.OpenAsync(FileAccessMode.Read).AsTask();
-            t2.Wait();
-
-            stream = t2.Result;
-
-            return stream;
-        }
-
-        public virtual bool CheckNext(int currentNumber)
-        {
-            if (trackList[currentNumber + 1].GetName() != "" && trackList[currentNumber + 1] != null)
-                return true;   
-            return false;
-        }
-
-        public virtual int GetPlayListLength()
-        {
-            return trackList.Count;
-        }
-
-        private void AddTrackInPlayList(int trackNumber, string trackName)
-        {
-            track = new Track(trackNumber, trackName);
-            trackList.Add(track);
         }
     }
 }

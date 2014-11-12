@@ -29,9 +29,10 @@ void Reader::Play(IPlayList ^playList)
 	Windows::Storage::Streams::IRandomAccessStream ^stream;
 	MFAudioReader *reader = new MFAudioReader();
 	this->currentPlayList = playList;
-	this->trackList = this->currentPlayList->CreatePlayList();
 
-	this->SortPlaylist();
+	//this->trackList = this->currentPlayList->GetTrackList();
+	this->currentPlayList->SortPlaylist();
+	//this->SortPlaylist();
 	this->FindGlobalDuration();
 	this->FindMarkers();
 
@@ -57,10 +58,10 @@ void Reader::Rewinding(double setPosition)
 	
 	for (int i = 0; i < this->playersList.size(); i++)
 	{
-		if ((this->trackList->GetAt(i)->GetPosition() <= (int)setPosition) && (this->playersList[i]->GetDuration() > (int)setPosition))
+		if ((this->currentPlayList->GetTrack(i)->GetPosition() <= (int)setPosition) && (this->playersList[i]->GetDuration() >(int)setPosition))
 			this->playersList[i]->SetPosition(Rational::SEC, setPosition);	//if position inside track duration doing rewinding
 		else
-			if ((int)setPosition < this->trackList->GetAt(i)->GetPosition())
+			if ((int)setPosition < this->currentPlayList->GetTrack(i)->GetPosition())
 			{
 				this->playersList[i-1]->ResetMarkerIndex();		//if position less than beginning track delete player, set previous marker
 				std::lock_guard<std::mutex> lock(this->lockPlayList);
@@ -105,11 +106,11 @@ void Reader::Stop()
 
 void Reader::FindGlobalDuration()
 {
-	this->globalDuration += (this->trackList->GetAt(0)->GetPosition() + this->FindSongDurationFromPlayList(0));
+	this->globalDuration += (this->currentPlayList->GetTrack(0)->GetPosition() + this->FindSongDurationFromPlayList(0));
 
 	for (int i = 1; i < this->currentPlayList->GetPlayListLength(); i++)
 	{
-		int64_t tmp = this->trackList->GetAt(i)->GetPosition() + this->FindSongDurationFromPlayList(i) - this->globalDuration;
+		int64_t tmp = this->currentPlayList->GetTrack(i)->GetPosition() + this->FindSongDurationFromPlayList(i) - this->globalDuration;
 		if (tmp > 0)
 			this->globalDuration += tmp;
 	}
@@ -152,11 +153,11 @@ void Reader::IfMarkerMet(int i)	// i - is a marker index, so equals index of nex
 
 	if (this->playersList[i-1]->GetCurrentPosition() < p->GetDuration())
 	{
-		if (this->playersList[i-1]->GetCurrentPosition() > this->trackList->GetAt(i)->GetPosition())	//if immediately rewound it  a new track will be played from the new position, but not with a marker
+		if (this->playersList[i - 1]->GetCurrentPosition() > this->currentPlayList->GetTrack(i)->GetPosition())	//if immediately rewound it  a new track will be played from the new position, but not with a marker
 		{
 			std::lock_guard<std::mutex> lock(this->lockPlayList);
 			this->playersList.push_back(p);
-			this->playersList[i]->SetPosition(Rational::SEC, this->playersList[i-1]->GetCurrentPosition() - this->trackList->GetAt(i)->GetPosition());
+			this->playersList[i]->SetPosition(Rational::SEC, this->playersList[i - 1]->GetCurrentPosition() - this->currentPlayList->GetTrack(i)->GetPosition());
 		}
 		else
 		{
@@ -172,10 +173,10 @@ void Reader::IfMarkerMet(int i)	// i - is a marker index, so equals index of nex
 }
 
 //sorting playlist by global song's positions in playlist
-void Reader::SortPlaylist()
-{
-	std::sort(begin(this->trackList), end(this->trackList), compare());
-}
+//void Reader::SortPlaylist()
+//{
+//	std::sort(begin(this->trackList), end(this->trackList), compare());
+//}
 
 int64_t Reader::FindSongDurationFromPlayList(int numSong)
 {
@@ -198,11 +199,11 @@ void Reader::FindMarkers()
 		std::vector<Marker> markers;
 		std::vector<Marker> voidMarkers;
 
-		int64_t currentEnd = this->trackList->GetAt(i)->GetPosition() + this->FindSongDurationFromPlayList(i);
+		int64_t currentEnd = this->currentPlayList->GetTrack(i)->GetPosition() + this->FindSongDurationFromPlayList(i);
 
-		while (this->trackList->GetAt(j)->GetPosition() < currentEnd)
+		while (this->currentPlayList->GetTrack(j)->GetPosition() < currentEnd)
 		{
-			int posRelPrev = this->trackList->GetAt(j)->GetPosition() - this->trackList->GetAt(i)->GetPosition();
+			int posRelPrev = this->currentPlayList->GetTrack(j)->GetPosition() - this->currentPlayList->GetTrack(i)->GetPosition();
 			marker.SetMarker(posRelPrev, i);
 			markers.push_back(marker);
 			j++;
