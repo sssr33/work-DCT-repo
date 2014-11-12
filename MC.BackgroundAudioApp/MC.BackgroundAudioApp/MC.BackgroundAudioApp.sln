@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MC.BackgroundAudioApp", "MC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MC.BackgroundAudioTask", "MC.BackgroundAudioTask\MC.BackgroundAudioTask.csproj", "{16B31CB1-2B4F-48BB-8007-F0ED59993543}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MediaExtension", "..\..\..\work-DCT-repo\AudioMixApp\MediaExtension\MediaExtension.vcxproj", "{5CD51D8F-EA7A-4577-AF9E-5556FE43FE9C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MediaExtension", "MediaExtension\MediaExtension.vcxproj", "{5CD51D8F-EA7A-4577-AF9E-5556FE43FE9C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

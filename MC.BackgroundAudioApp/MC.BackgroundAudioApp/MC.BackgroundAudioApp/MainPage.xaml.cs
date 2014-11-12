@@ -28,7 +28,7 @@ namespace MC.BackgroundAudioApp
                           {
                               {
                                   "Play",
-                                  "E://SkyDrive/WORK DCT/MC.BackgroundAudioApp/MC.BackgroundAudioApp/MC.BackgroundAudioApp/Assets/1 Caroline Duris - Barrage(original mix).mp3"
+                                  ",kjfghj"
                               }
                           };
             BackgroundMediaPlayer.SendMessageToBackground(message);

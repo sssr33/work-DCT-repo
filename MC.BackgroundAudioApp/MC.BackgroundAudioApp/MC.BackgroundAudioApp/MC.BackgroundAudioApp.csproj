@@ -80,13 +80,13 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .Net Framework and Windows SDK are automatically included -->
-    <ProjectReference Include="..\..\..\..\work-DCT-repo\AudioMixApp\MediaExtension\MediaExtension.vcxproj">
-      <Project>{5cd51d8f-ea7a-4577-af9e-5556fe43fe9c}</Project>
-      <Name>MediaExtension</Name>
-    </ProjectReference>
     <ProjectReference Include="..\MC.BackgroundAudioTask\MC.BackgroundAudioTask.csproj">
       <Project>{16b31cb1-2b4f-48bb-8007-f0ed59993543}</Project>
       <Name>MC.BackgroundAudioTask</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MediaExtension\MediaExtension.vcxproj">
+      <Project>{5cd51d8f-ea7a-4577-af9e-5556fe43fe9c}</Project>
+      <Name>MediaExtension</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -107,6 +107,9 @@
     <Content Include="Assets\02 Quutamo.mp3" />
     <Content Include="Assets\1 Caroline Duris - Barrage%28original mix%29.mp3" />
     <Content Include="Assets\Logo.scale-240.png" />
+    <Content Include="Assets\silence1sec.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\SmallLogo.scale-240.png" />
     <Content Include="Assets\SplashScreen.scale-240.png" />
     <Content Include="Assets\Square71x71Logo.scale-240.png" />

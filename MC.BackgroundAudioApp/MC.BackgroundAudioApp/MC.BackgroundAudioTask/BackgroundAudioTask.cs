@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Background;
 using Windows.Foundation.Collections;
 using Windows.Media;
-using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -26,7 +26,10 @@ namespace MC.BackgroundAudioTask
             _systemMediaTransportControl.IsEnabled = true;
 
             BackgroundMediaPlayer.MessageReceivedFromForeground += MessageReceivedFromForeground;
-            BackgroundMediaPlayer.Current.CurrentStateChanged += BackgroundMediaPlayerCurrentStateChanged;
+
+            BackgroundMediaPlayer.Current.MediaOpened += CurrentOnMediaOpened;
+            BackgroundMediaPlayer.Current.MediaFailed += CurrentOnMediaFailed;
+            BackgroundMediaPlayer.Current.MediaEnded += CurrentOnMediaEnded;
 
             // Associate a cancellation and completed handlers with the background task.
             taskInstance.Canceled += OnCanceled;
@@ -39,6 +42,29 @@ namespace MC.BackgroundAudioTask
             
         }
 
+        void FakePause()
+        {
+            BackgroundMediaPlayer.Current.PlaybackRate = 0.0;
+            //BackgroundMediaPlayer.Current.Position = new TimeSpan(0);
+            
+        }
+
+        private void CurrentOnMediaEnded(MediaPlayer sender, object args)
+        {
+        }
+
+        private void CurrentOnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
+        {
+        }
+
+        private void CurrentOnMediaOpened(MediaPlayer sender, object args)
+        {
+            playList.CreatePlayList();
+            player.Play(playList);
+
+            this.FakePause();
+        }
+
         private void MessageReceivedFromForeground(object sender, MediaPlayerDataReceivedEventArgs e)
         {
             ValueSet valueSet = e.Data;
@@ -49,40 +75,29 @@ namespace MC.BackgroundAudioTask
                     case "Play":
                         Debug.WriteLine("Starting Playback");
                         Play(valueSet[key].ToString());
-                        //player.Play(playList);
                         break;
                 }
             }
         }
 
-        private void Play(string s)
+        private async void Play(string s)
         {
             MediaPlayer mediaPlayer = BackgroundMediaPlayer.Current;
             mediaPlayer.AutoPlay = true;
-            mediaPlayer.SetUriSource(new Uri(s));
-            //player.Play(playList);
+
+            var file = await Package.Current.InstalledLocation.GetFileAsync("Assets\\silence1sec.mp3");
+            mediaPlayer.SetFileSource(file);
+
+            this.FakePause();
 
             //Update the universal volume control
             _systemMediaTransportControl.ButtonPressed += MediaTransportControlButtonPressed;
             _systemMediaTransportControl.IsPauseEnabled = true;
-            _systemMediaTransportControl.IsPlayEnabled = true;
+            _systemMediaTransportControl.IsPlayEnabled = false;
             _systemMediaTransportControl.DisplayUpdater.Type = MediaPlaybackType.Music;
             _systemMediaTransportControl.DisplayUpdater.MusicProperties.Title = "Test Title";
             _systemMediaTransportControl.DisplayUpdater.MusicProperties.Artist = "Test Artist";
             _systemMediaTransportControl.DisplayUpdater.Update();
-        }
-
-
-        private void BackgroundMediaPlayerCurrentStateChanged(MediaPlayer sender, object args)
-        {
-            if (sender.CurrentState == MediaPlayerState.Playing)
-            {
-                _systemMediaTransportControl.PlaybackStatus = MediaPlaybackStatus.Playing;
-            }
-            else if (sender.CurrentState == MediaPlayerState.Paused)
-            {
-                _systemMediaTransportControl.PlaybackStatus = MediaPlaybackStatus.Paused;
-            }
         }
 
         private void MediaTransportControlButtonPressed(SystemMediaTransportControls sender,
@@ -92,10 +107,12 @@ namespace MC.BackgroundAudioTask
             {
                 case SystemMediaTransportControlsButton.Play:
                     BackgroundMediaPlayer.Current.Play();
-                    //player.Play(playList);
+                    this.FakePause();
+                    player.Play(playList);
                     break;
                 case SystemMediaTransportControlsButton.Pause:
                     BackgroundMediaPlayer.Current.Pause();
+                    player.Stop();
                     break;
             }
         }
