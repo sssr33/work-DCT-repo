@@ -1,7 +1,10 @@
 ﻿using System;
+using System.IO;
 using Windows.ApplicationModel;
 using Windows.Foundation.Collections;
 using Windows.Media.Playback;
+using Windows.Storage;
+using Windows.Storage.Streams;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -23,6 +26,7 @@ namespace AudioMixApp
         UInt32 width;
         UInt32 height;
         private MediaPlayer mediaPlayer;
+        private bool backgroundStarted = false;
 
         public MainPage()
         {
@@ -30,11 +34,86 @@ namespace AudioMixApp
             this.NavigationCacheMode = NavigationCacheMode.Required;
             ocrEngine = new OcrEngine(OcrLanguage.English);
             OcrText.IsReadOnly = true;
+            sliderVolume.Value = 100;
+        }
+
+        private void MessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs e)
+        {
+            ValueSet valueSet = e.Data;
+            foreach (string key in valueSet.Keys)
+            {
+                switch (key)
+                {
+                    case "ExistTrue":
+                        CheckPlayList((byte[])valueSet[key]);
+                        break;
+                    case "BackgroundCreated":
+                        CheckBackground((byte[])valueSet[key]);
+                        break;
+                }
+            }
+        }
+
+        private void CheckBackground(byte[] serialized)
+        {
+            using (var ms = new MemoryStream(serialized))
+            {
+                CreatingPlaylist tmp = CreatingPlaylist.DeSerialize(ms);
+
+                //backgroundStarted = true;
+
+                if (tmp.Tracklist != null)
+                {
+                    if (tmp.Tracklist.Count != 0)
+                    {
+                        playList = CreatingPlaylist.DeSerialize(ms);
+                        backgroundStarted = true;
+                    }
+                }
+            }
+
+            IfBackgroundExist();
+        }
+
+        private void CheckPlayList(byte[] serialized) 
+        {
+            using (var ms = new MemoryStream(serialized))
+            {
+                CreatingPlaylist tmp = CreatingPlaylist.DeSerialize(ms);
+
+                backgroundStarted = true;   
+
+                if (tmp.Tracklist != null)
+                {
+                    if (tmp.Tracklist.Count != 0)
+                    {
+                        playList = CreatingPlaylist.DeSerialize(ms);
+                        //backgroundStarted = true;
+                    }
+                }
+            }
+
+        }
+
+        private async void IfBackgroundExist()
+        {
+            if (backgroundStarted)
+            {
+                StorageFile testFile = await ApplicationData.Current.LocalFolder.CreateFileAsync("test_file.txt", CreationCollisionOption.OpenIfExists);
+                IRandomAccessStream writeStream = await testFile.OpenAsync(FileAccessMode.ReadWrite);
+                IOutputStream outputSteam = writeStream.GetOutputStreamAt(0);
+                var dataWriter = new DataWriter(outputSteam);
+                dataWriter.WriteString("The background is already created" + "\r\n");
+                await dataWriter.StoreAsync();
+            }
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             mediaPlayer = BackgroundMediaPlayer.Current;
+            var messageToBackground = new ValueSet { { "Background", "Is background existing" } };
+            BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
+            BackgroundMediaPlayer.MessageReceivedFromBackground += MessageReceivedFromBackground;
         }
 
         private async void Extract_Click(object sender, RoutedEventArgs e)
@@ -68,49 +147,50 @@ namespace AudioMixApp
 
         private void OpenButtonClick(Object sender, RoutedEventArgs e)
         {
-            if (player != null)
-                player.Stop();
-            
-            //playList = new CreatingPlaylist();
-            //playList.CreatePlayList();
-            //player = new Reader();
-            //player.Play(playList);
+            byte[] serialized;
 
-            //if (player != null)
-            //{
-            //    TimeSpan tmpDuration = player.Duration.Duration();
-            //}
-            sliderVolume.Value = 100;
+            if (playList == null)
+            {
+                playList = new CreatingPlaylist();
+                playList.CreatePlayList();
+            }
 
-            //playList = new CreatingPlaylist();
-            //playList.CreatePlayList();
+            using (var ms = new MemoryStream())
+            {
+                serialized = playList.Serialize(ms);
+            }
 
-            var messageToBackground = new ValueSet { { "Play", "qwerty" } };
+            var messageToBackground = new ValueSet { { "Play", serialized } };
             BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
+
+            player = new Reader();
+            //BackgroundMediaPlayer.IsMediaPlaying();
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            if (player != null)
-            {
                 sliderProgress.Value = 0;
                 newPosition = 0;
-                player.Stop();
-            }
+                var messageToBackground = new ValueSet { { "Stop", 0 } };
+                BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
         }
 
         private void Slider1_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
             if (player != null)
-                player.Volume((float)e.NewValue/100);
+            {
+                var messageToBackground = new ValueSet {{"Volume", (float) e.NewValue / 100}};
+                BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
+            }
         }
 
         private void Slider2_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
             if (player != null)
             {
-                player.Rewinding(e.NewValue*((double) player.GetGlobalDuration()/100));
                 newPosition = e.NewValue;
+                var messageToBackground = new ValueSet { { "Rewind", e.NewValue } };
+                BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
             }
         }
 

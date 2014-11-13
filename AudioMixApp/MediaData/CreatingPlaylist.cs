@@ -1,17 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.InteropServices;
 using Windows.ApplicationModel;
 using Windows.Storage;
 using Windows.Storage.Streams;
 using MediaExtension;
+using ProtoBuf;
 
 namespace MediaData
 {
+    [ProtoContract]
     public class CreatingPlaylist : IPlayList
     {
         private List<Track> trackList;
 
+        [ProtoMember(1)]
         public List<Track> Tracklist { get { return this.trackList; } set { this.trackList = value; } }
+
+        public CreatingPlaylist()
+        {
+            
+        }
+
+        public CreatingPlaylist(List<Track> trackList)
+        {
+            this.trackList = trackList;
+        }
 
         //global positions sets outside
         public void CreatePlayList()
@@ -63,6 +78,20 @@ namespace MediaData
         public void SortPlaylist()
         {
             this.trackList.Sort((x, y) => x.Position - y.Position);
+        }
+
+        public byte[] Serialize(MemoryStream stream)
+        {
+            byte[] serialized;
+            Serializer.Serialize(stream, this.Tracklist);
+            serialized = stream.ToArray();
+            return serialized;
+        }
+
+        public static CreatingPlaylist DeSerialize(MemoryStream stream)
+        {
+            var playlist = Serializer.Deserialize<CreatingPlaylist>(stream);
+            return playlist;
         }
     }
 }

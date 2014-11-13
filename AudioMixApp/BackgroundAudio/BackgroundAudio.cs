@@ -6,6 +6,7 @@ using Windows.Media;
 using Windows.Media.Playback;
 using MediaData;
 using MediaExtension;
+using System.IO;
 
 namespace BackgroundAudio
 {
@@ -31,6 +32,8 @@ namespace BackgroundAudio
             player = new Reader();
             playList = new CreatingPlaylist();
 
+            Existing("aaa");
+
             _deferral = taskInstance.GetDeferral();
         }
 
@@ -42,7 +45,6 @@ namespace BackgroundAudio
 
         private void CurrentOnMediaOpened(MediaPlayer sender, object args)
         {
-            playList.CreatePlayList();
             player.Play(playList);
             FakePause();
         }
@@ -55,17 +57,33 @@ namespace BackgroundAudio
                 switch (key)
                 {
                     case "Play":
-                        Play(valueSet[key].ToString());
+                        Play((byte[])valueSet[key]);
+                        break;
+                    case "Rewind":
+                        Rewind((double)valueSet[key]);
+                        break;
+                    case "Stop":
+                        Stop((int)valueSet[key]);
+                        break;
+                    case "Volume":
+                        Volume((float)valueSet[key]);
+                        break;
+                    case "Background":
+                        Background((string)valueSet[key]);
                         break;
                 }
             }
         }
 
-        private async void Play(string s)
+        private async void Play(byte[] serialized)
         {
             MediaPlayer mediaPlayer = BackgroundMediaPlayer.Current;
             mediaPlayer.AutoPlay = true;
-            //playList = list;
+
+            using (var ms = new MemoryStream(serialized))
+            {
+                playList = CreatingPlaylist.DeSerialize(ms);
+            }
 
             var crutchFile = await Package.Current.InstalledLocation.GetFileAsync("Assets\\silence1sec.mp3");
             mediaPlayer.SetFileSource(crutchFile);
@@ -80,6 +98,61 @@ namespace BackgroundAudio
             _systemMediaTransportControl.DisplayUpdater.MusicProperties.Title = "Music";
             _systemMediaTransportControl.DisplayUpdater.MusicProperties.Artist = "Different ";
             _systemMediaTransportControl.DisplayUpdater.Update();
+        }
+
+        private void Rewind(double pos)
+        {
+            if(player != null)
+            {
+                var tmp = player.GetGlobalDuration();
+                player.Rewinding(pos * (tmp / 100));
+            }
+        }
+
+        private void Stop(int play)
+        {
+            if(player != null)
+            {
+                if(play == 0)
+                {
+                    BackgroundMediaPlayer.Current.Pause();
+                    player.Stop();
+                }
+            }
+        }
+
+        private void Volume(float volume)
+        {
+            if(player != null)
+            {
+                player.Volume(volume);
+            }
+        }
+
+        private void Existing(string s)
+        {
+            byte[] serialized;
+
+            using (var ms = new MemoryStream())
+            {
+                serialized = playList.Serialize(ms);
+            }
+
+            var messageToForeground = new ValueSet { { "ExistTrue", serialized } };
+            BackgroundMediaPlayer.SendMessageToForeground(messageToForeground);
+        }
+
+        private void Background(string message)
+        {
+            byte[] serialized;
+
+            using (var ms = new MemoryStream())
+            {
+                serialized = playList.Serialize(ms);
+            }
+
+            var messageToForeground = new ValueSet { { "BackgroundCreated", serialized } };
+            BackgroundMediaPlayer.SendMessageToForeground(messageToForeground);
         }
 
         private void MediaTransportControlButtonPressed(SystemMediaTransportControls sender,

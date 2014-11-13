@@ -1,16 +1,10 @@
-﻿using System.IO;
-using MediaExtension;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MediaExtension;
 using ProtoBuf;
 
 namespace MediaData
 {
     //make an interfase in Reader. sent List of Track instead of IPlayList
-    [ProtoContract] //move into CreatingPlaylist
+    [ProtoContract]
     public class Track : ITrack
     {
         private int globalPosInPlayList; //song position relatively begin of global playlist duration
@@ -26,7 +20,7 @@ namespace MediaData
             trackName = name;
         }
 
-        [ProtoMember(1)]//move into CreatingPlaylist
+        [ProtoMember(1)]
         public int Position { get { return globalPosInPlayList; } set { this.globalPosInPlayList = value; } }
 
         [ProtoMember(2)]
@@ -40,11 +34,6 @@ namespace MediaData
         public string GetName()
         {
             return trackName;
-        }
-
-        public void Serialize(Stream stream)    //move into CreatingPlaylist
-        {
-            Serializer.Serialize(stream, this);
         }
     }
 }

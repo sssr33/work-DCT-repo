@@ -87,7 +87,10 @@ Windows::Foundation::TimeSpan Reader::Duration::get()
 
 void Reader::Volume(float setVolume)
 {
-	this->player->SetVolume(setVolume);
+	for (int i = 0; i < this->playersList.size(); i++)
+	{
+		this->playersList[i]->SetVolume(setVolume);
+	}
 }
 
 LONGLONG Reader::CurrPos()
