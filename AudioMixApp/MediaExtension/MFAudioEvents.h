@@ -21,9 +21,9 @@ namespace MediaExtension
 		MFAudioEvents();
 		~MFAudioEvents();
 
-		virtual void EndOfPlaying() override;
+		virtual void EndOfPlaying(int c) override;
 		virtual void EndOfRewinding() override;
-		virtual void IfMarker() override;
+		virtual void IfMarker(int i) override;
 		void InitEvent(Reader ^reader);
 
 	private:

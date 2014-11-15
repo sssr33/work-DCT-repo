@@ -28,7 +28,6 @@ XAudio2Player::XAudio2Player()
 	this->currentPosition = 0;
 }
 
-
 XAudio2Player::~XAudio2Player()
 {
 
@@ -68,20 +67,6 @@ void XAudio2Player::SetPosition(Rational ratio, double position)
 		this->SubmitBuffer();
 }
 
-//tmp func
-bool XAudio2Player::IfStartPosAchieved()
-{
-	
-	LONGLONG startPos = (this->GetDuration() + marker) * 10000000;
-	//this->marker.activate = false;
-	if (this->currentPosition >= startPos)
-	{
-		this->marker = 0;
-		return true;
-	}
-	return false;
-}
-
 void XAudio2Player::FlushSourceVoice()
 {
 	std::unique_lock<std::mutex> lock(this->samplesMutex);
@@ -104,7 +89,7 @@ void XAudio2Player::FlushSourceVoice()
 	this->samples = std::queue<std::unique_ptr<AudioSample>>();
 }
 
-void XAudio2Player::SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2)
+void XAudio2Player::SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> xAudio2, std::vector<Marker> markers)
 {
 	HRESULT hr = S_OK;
 	WAVEFORMATEX *wF;
@@ -113,6 +98,7 @@ void XAudio2Player::SetAudioData(AudioReader *reader, Microsoft::WRL::ComPtr<IXA
 
 	this->reader = reader;
 	this->xAudio2 = xAudio2;
+	this->markers = markers;
 	this->reader->GetWaveInfo(0, wF, wL);
 	hr = this->xAudio2->CreateSourceVoice(&tmpVoice, wF, 0, 2.0f, this);
 	this->sourceVoice = std::shared_ptr<IXAudio2SourceVoice>(tmpVoice, SourceVoiceDeleter());
@@ -130,10 +116,10 @@ void XAudio2Player::Stop()
 	hr = this->sourceVoice->Stop();
 }
 
-void XAudio2Player::Initialize(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> iXAudio2, std::shared_ptr<AudioEvents> e)
+void XAudio2Player::Initialize(AudioReader *reader, Microsoft::WRL::ComPtr<IXAudio2> iXAudio2, std::shared_ptr<AudioEvents> e, std::vector<Marker> markers)
 {
 	this->events = e;
-	this->SetAudioData(reader, iXAudio2);
+	this->SetAudioData(reader, iXAudio2, markers);
 }
 
 void XAudio2Player::SubmitBuffer()
@@ -165,20 +151,27 @@ void XAudio2Player::SubmitBuffer()
 			this->currentPosition = sample->GetSampleTime();
 			this->samples.push(std::move(sample));
 
-			//if newpos <0 start pos = previous track duration + new pos. now for newpos<0 only 
-			if (this->marker < 0)
+			int64_t tmp = GetCurrentPosition();	/////
+
+			if (this->markers.size())
+			if (this->markerIndex < this->markers.size())
 			{
-				if (this->IfStartPosAchieved())
+				if (this->GetCurrentPosition() >= this->markers[this->markerIndex].GetMarkerPosition())
 				{
 					if (this->events)
 					{
+
+						//this->markerIndex++;
+
 						concurrency::create_task([=]()
 						{
-							this->events->IfMarker();
+							this->events->IfMarker(this->markerIndex);	//must be transmitted already increased markerIndex
 						});
+
+						this->markerIndex++;
 					}
 				}
-			}			
+			}
 		}
 		else
 		{
@@ -189,7 +182,8 @@ void XAudio2Player::SubmitBuffer()
 				{
 					this->sourceVoice->Stop();
 					this->FlushSourceVoice();
-					this->events->EndOfPlaying();
+					this->GoToNextSong();
+					this->events->EndOfPlaying(this->trackIndex);
 				});
 			}
 		}
@@ -211,4 +205,14 @@ void XAudio2Player::DeleteSamples()
 {
 	std::unique_lock<std::mutex> lock(this->samplesMutex);
 	this->samples.pop();
+}
+
+void XAudio2Player::ResetMarkerIndex()
+{
+	this->markerIndex--;
+}
+
+void XAudio2Player::GoToNextSong()
+{
+	this->trackIndex++;
 }

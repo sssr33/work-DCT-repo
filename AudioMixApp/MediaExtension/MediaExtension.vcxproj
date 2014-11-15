@@ -142,6 +142,7 @@
     <ClInclude Include="AudioSample.h" />
     <ClInclude Include="Auto.h" />
     <ClInclude Include="InitMasterVoice.h" />
+    <ClInclude Include="Marker.h" />
     <ClInclude Include="MFAudioEvents.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="MFAudioSample.h" />
@@ -155,6 +156,7 @@
     <ClCompile Include="AudioSample.cpp" />
     <ClCompile Include="Auto.cpp" />
     <ClCompile Include="InitMasterVoice.cpp" />
+    <ClCompile Include="Marker.cpp" />
     <ClCompile Include="MFAudioEvents.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -1,47 +1,32 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel;
-using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Media.Playback;
 using Windows.Storage;
+using Windows.Storage.Streams;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
-using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
-using Windows.Storage.Pickers;
-using Windows.Storage.Streams;
-using Windows.Storage.FileProperties;
 using WindowsPreview.Media.Ocr;
 using Windows.Graphics.Imaging;
-
-using AudioMixApp;
+using MediaData;
 using MediaExtension;
-
-
-// The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=391641
 
 namespace AudioMixApp
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
     public sealed partial class MainPage : Page
     {
         
         Reader player;
+        CreatingPlaylist playList;
         double newPosition = 0;
         OcrEngine ocrEngine;
         UInt32 width;
         UInt32 height;
-        CreatingPlaylist playList;
+        private MediaPlayer mediaPlayer;
+        private bool backgroundStarted = false;
 
         public MainPage()
         {
@@ -49,6 +34,86 @@ namespace AudioMixApp
             this.NavigationCacheMode = NavigationCacheMode.Required;
             ocrEngine = new OcrEngine(OcrLanguage.English);
             OcrText.IsReadOnly = true;
+            sliderVolume.Value = 100;
+        }
+
+        private void MessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs e)
+        {
+            ValueSet valueSet = e.Data;
+            foreach (string key in valueSet.Keys)
+            {
+                switch (key)
+                {
+                    case "ExistTrue":
+                        CheckPlayList((byte[])valueSet[key]);
+                        break;
+                    case "BackgroundCreated":
+                        CheckBackground((byte[])valueSet[key]);
+                        break;
+                }
+            }
+        }
+
+        private void CheckBackground(byte[] serialized)
+        {
+            using (var ms = new MemoryStream(serialized))
+            {
+                CreatingPlaylist tmp = CreatingPlaylist.DeSerialize(ms);
+
+                //backgroundStarted = true;
+
+                if (tmp.Tracklist != null)
+                {
+                    if (tmp.Tracklist.Count != 0)
+                    {
+                        playList = CreatingPlaylist.DeSerialize(ms);
+                        backgroundStarted = true;
+                    }
+                }
+            }
+
+            IfBackgroundExist();
+        }
+
+        private void CheckPlayList(byte[] serialized) 
+        {
+            using (var ms = new MemoryStream(serialized))
+            {
+                CreatingPlaylist tmp = CreatingPlaylist.DeSerialize(ms);
+
+                backgroundStarted = true;   
+
+                if (tmp.Tracklist != null)
+                {
+                    if (tmp.Tracklist.Count != 0)
+                    {
+                        playList = CreatingPlaylist.DeSerialize(ms);
+                        //backgroundStarted = true;
+                    }
+                }
+            }
+
+        }
+
+        private async void IfBackgroundExist()
+        {
+            if (backgroundStarted)
+            {
+                StorageFile testFile = await ApplicationData.Current.LocalFolder.CreateFileAsync("test_file.txt", CreationCollisionOption.OpenIfExists);
+                IRandomAccessStream writeStream = await testFile.OpenAsync(FileAccessMode.ReadWrite);
+                IOutputStream outputSteam = writeStream.GetOutputStreamAt(0);
+                var dataWriter = new DataWriter(outputSteam);
+                dataWriter.WriteString("The background is already created" + "\r\n");
+                await dataWriter.StoreAsync();
+            }
+        }
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            mediaPlayer = BackgroundMediaPlayer.Current;
+            var messageToBackground = new ValueSet { { "Background", "Is background existing" } };
+            BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
+            BackgroundMediaPlayer.MessageReceivedFromBackground += MessageReceivedFromBackground;
         }
 
         private async void Extract_Click(object sender, RoutedEventArgs e)
@@ -82,108 +147,56 @@ namespace AudioMixApp
 
         private void OpenButtonClick(Object sender, RoutedEventArgs e)
         {
-            if (player != null)
-                player.Stop();
+            byte[] serialized;
+
+            if (playList == null)
+            {
+                playList = new CreatingPlaylist();
+                playList.CreatePlayList();
+            }
+
+            using (var ms = new MemoryStream())
+            {
+                serialized = playList.Serialize(ms);
+            }
+
+            var messageToBackground = new ValueSet { { "Play", serialized } };
+            BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
 
             player = new Reader();
-            playList = new CreatingPlaylist();
-            player.Play(playList);
-
-            TimeSpan tmpDuration = player.Duration.Duration();
-
-            sliderVolume.Value = 100;
+            //BackgroundMediaPlayer.IsMediaPlaying();
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            if (player != null)
-            {
                 sliderProgress.Value = 0;
                 newPosition = 0;
-                player.Stop();
-            }
+                var messageToBackground = new ValueSet { { "Stop", 0 } };
+                BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
         }
 
         private void Slider1_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
             if (player != null)
-                player.Volume((float)e.NewValue/100);
+            {
+                var messageToBackground = new ValueSet {{"Volume", (float) e.NewValue / 100}};
+                BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
+            }
         }
 
         private void Slider2_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
             if (player != null)
             {
-                player.Rewinding(e.NewValue*((double) player.Duration.Duration().Ticks/100));
                 newPosition = e.NewValue;
+                var messageToBackground = new ValueSet { { "Rewind", e.NewValue } };
+                BackgroundMediaPlayer.SendMessageToBackground(messageToBackground);
             }
         }
 
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
             Application.Current.Exit();
-        }
-    }
-
-    //make an interfase in Reader. sent Track instead of IPlayList
-    public class Track
-    {
-        public Track(int globalPos, string name)
-        {
-            globalPosInPlayList = globalPos;
-            this.name = name;
-        }
-
-        public int globalPosInPlayList; //song position relatively begin of global playlist duration
-        public string name;
-    }
-
-    public class CreatingPlaylist : IPlayList
-    {
-        private IRandomAccessStream stream;
-        public List<Track> trackList;
-        private Track track;
-
-        //global positions sets outside
-        public virtual void CreatePlayList()
-        {
-            trackList = new List<Track>();
-
-            AddTrackInPlayList(0, "Assets\\1 Caroline Duris - Barrage(original mix).mp3");
-            AddTrackInPlayList(30, "Assets\\02 - Master of Puppets.mp3");
-            AddTrackInPlayList(10, "Assets\\02 Quutamo.mp3");
-        }
-
-        public virtual IRandomAccessStream GetStream(int trackNumber)
-        {
-            var t = Package.Current.InstalledLocation.GetFileAsync(trackList[trackNumber].name).AsTask();
-            t.Wait();
-            StorageFile file = t.Result;
-
-            var t2 = file.OpenAsync(FileAccessMode.Read).AsTask();
-            t2.Wait();
-
-            stream = t2.Result;
-
-            return stream;
-        }
-
-        public virtual bool CheckNext(int currentNumber)
-        {
-            if (trackList[currentNumber + 1].name != "" && trackList[currentNumber + 1] != null)
-                return true;   
-            return false;
-        }
-
-        public virtual int GetPlayListLength()
-        {
-            return trackList.Count;
-        }
-
-        private void AddTrackInPlayList(int trackNumber, string trackName)
-        {
-            track = new Track(trackNumber, trackName);
-            trackList.Add(track);
         }
     }
 }

@@ -14,7 +14,7 @@ InitMasterVoice::InitMasterVoice()
 {
 	HRESULT hr = S_OK;
 	hr = XAudio2Create(&this->xAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
-	hr = this->xAudio2->CreateMasteringVoice(&this->masterVoice);
+	hr = this->xAudio2->CreateMasteringVoice(&this->masterVoice, XAUDIO2_DEFAULT_CHANNELS, 0, 0, nullptr, nullptr, AudioCategory_BackgroundCapableMedia);
 }
 
 InitMasterVoice::~InitMasterVoice()
